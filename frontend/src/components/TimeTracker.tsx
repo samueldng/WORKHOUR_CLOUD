@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 interface TimeEntry {
   id: number;
   projectId: number;
   taskId: number;
-  startTime: Date;
-  endTime: Date | null;
+  startTime: string;
+  endTime: string | null;
   duration: number;
   status: 'active' | 'completed';
 }
@@ -15,37 +16,44 @@ const TimeTracker: React.FC = () => {
   const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
 
-  const startTracking = () => {
-    const newEntry: TimeEntry = {
-      id: Date.now(),
-      projectId: 1,
-      taskId: 1,
-      startTime: new Date(),
-      endTime: null,
-      duration: 0,
-      status: 'active'
+  useEffect(() => {
+    const fetchTimeEntries = async () => {
+      try {
+        const entries = await api.getTimeEntries();
+        setTimeEntries(entries);
+      } catch (error) {
+        console.error('Error fetching time entries:', error);
+      }
     };
-    
-    setCurrentEntry(newEntry);
-    setIsTracking(true);
-    setTimeEntries([...timeEntries, newEntry]);
+
+    fetchTimeEntries();
+  }, []);
+
+  const startTracking = async () => {
+    try {
+      // For now, we'll use a default project and task ID
+      const newEntry = await api.startTimeEntry({ projectId: 1, taskId: 1 });
+      setCurrentEntry(newEntry);
+      setIsTracking(true);
+      setTimeEntries([...timeEntries, newEntry]);
+    } catch (error) {
+      console.error('Error starting time tracking:', error);
+    }
   };
 
-  const stopTracking = () => {
+  const stopTracking = async () => {
     if (currentEntry) {
-      const updatedEntry = {
-        ...currentEntry,
-        endTime: new Date(),
-        duration: (new Date().getTime() - currentEntry.startTime.getTime()) / 1000,
-        status: 'completed' as const
-      };
-      
-      setCurrentEntry(null);
-      setIsTracking(false);
-      
-      setTimeEntries(timeEntries.map(entry => 
-        entry.id === currentEntry.id ? updatedEntry : entry
-      ));
+      try {
+        const updatedEntry = await api.stopTimeEntry(currentEntry.id);
+        setCurrentEntry(null);
+        setIsTracking(false);
+        
+        setTimeEntries(timeEntries.map(entry => 
+          entry.id === currentEntry.id ? updatedEntry : entry
+        ));
+      } catch (error) {
+        console.error('Error stopping time tracking:', error);
+      }
     }
   };
 
@@ -71,8 +79,8 @@ const TimeTracker: React.FC = () => {
         <ul>
           {timeEntries.map(entry => (
             <li key={entry.id}>
-              {entry.startTime.toLocaleString()} - 
-              {entry.endTime ? entry.endTime.toLocaleString() : 'Active'}
+              {new Date(entry.startTime).toLocaleString()} - 
+              {entry.endTime ? new Date(entry.endTime).toLocaleString() : 'Active'}
               ({(entry.duration / 3600).toFixed(2)} hours)
             </li>
           ))}

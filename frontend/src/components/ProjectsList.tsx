@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface Project {
   id: number;
@@ -10,28 +10,11 @@ interface Project {
   hourlyRate: number;
 }
 
-const ProjectsList: React.FC = () => {
-  const [projects] = useState<Project[]>([
-    {
-      id: 1,
-      name: 'Website Redesign',
-      description: 'Redesign company website',
-      status: 'active',
-      startDate: '2025-01-01',
-      endDate: '2025-03-31',
-      hourlyRate: 50
-    },
-    {
-      id: 2,
-      name: 'Mobile App Development',
-      description: 'Develop mobile application',
-      status: 'planning',
-      startDate: '2025-02-01',
-      endDate: '2025-08-31',
-      hourlyRate: 75
-    }
-  ]);
+interface ProjectsListProps {
+  projects: Project[];
+}
 
+const ProjectsList: React.FC<ProjectsListProps> = ({ projects }) => {
   return (
     <div className="projects-list">
       <h2>Projects</h2>
