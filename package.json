@@ -1,0 +1,29 @@
+{
+  "name": "workhour-cloud",
+  "version": "1.0.0",
+  "description": "Plataforma SaaS para gestão e produtividade remota",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run start:dev",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && npm test",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint"
+  },
+  "keywords": [
+    "saas",
+    "productivity",
+    "time-tracking",
+    "remote-work"
+  ],
+  "author": "Workhour Cloud Team",
+  "license": "MIT",
+  "dependencies": {
+    "@nestjs/jwt": "^11.0.1"
+  },
+  "devDependencies": {
+    "@types/passport-jwt": "^4.0.1"
+  }
+}
