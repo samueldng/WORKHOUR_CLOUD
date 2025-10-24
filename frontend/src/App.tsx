@@ -1,39 +1,27 @@
-import React, { useState, useEffect } from 'react';
 import './style.css';
 import Dashboard from './components/Dashboard';
 import LoginForm from './components/LoginForm';
-import api from './services/api';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  const { isAuthenticated, login, logout } = useAuth();
 
-  useEffect(() => {
-    // Check if there's a stored token
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      api.setToken(storedToken);
-      setToken(storedToken);
-      setIsLoggedIn(true);
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      await login(username, password);
+    } catch (err) {
+      console.error('Login error:', err);
+      throw err;
     }
-  }, []);
-
-  const handleLogin = (token: string) => {
-    setToken(token);
-    setIsLoggedIn(true);
-    localStorage.setItem('token', token);
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setToken(null);
-    localStorage.removeItem('token');
-    api.setToken('');
+    logout();
   };
 
   return (
     <div className="App">
-      {!isLoggedIn ? (
+      {!isAuthenticated ? (
         <LoginForm onLogin={handleLogin} />
       ) : (
         <div>

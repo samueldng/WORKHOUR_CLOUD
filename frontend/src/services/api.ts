@@ -7,6 +7,7 @@ interface LoginCredentials {
 
 interface RegisterData {
   username: string;
+  email: string;
   password: string;
 }
 
@@ -15,6 +16,7 @@ interface AuthResponse {
   user: {
     id: number;
     username: string;
+    email: string;
   };
 }
 
@@ -43,6 +45,23 @@ class ApiService {
 
   setToken(token: string) {
     this.token = token;
+    localStorage.setItem('token', token);
+  }
+
+  getToken(): string | null {
+    if (!this.token) {
+      this.token = localStorage.getItem('token');
+    }
+    return this.token;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+
+  logout(): void {
+    this.token = null;
+    localStorage.removeItem('token');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -56,16 +75,19 @@ class ApiService {
       },
     };
 
-    if (this.token) {
+    if (this.getToken()) {
       config.headers = {
         ...config.headers,
-        'Authorization': `Bearer ${this.token}`,
+        'Authorization': `Bearer ${this.getToken()}`,
       };
     }
 
     const response = await fetch(url, config);
     
     if (!response.ok) {
+      if (response.status === 401) {
+        this.logout();
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
@@ -74,17 +96,23 @@ class ApiService {
 
   // Auth endpoints
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    return this.request<AuthResponse>('/auth/login', {
+    const response = await this.request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
+    
+    this.setToken(response.access_token);
+    return response;
   }
 
-  async register(data: RegisterData): Promise<any> {
-    return this.request('/auth/register', {
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    
+    this.setToken(response.access_token);
+    return response;
   }
 
   async getProfile(): Promise<any> {

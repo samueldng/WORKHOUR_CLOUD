@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import api from '../services/api';
 
 interface LoginFormProps {
-  onLogin: (token: string) => void;
+  onLogin: (username: string, password: string) => Promise<void>;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -13,9 +12,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await api.login({ username, password });
-      api.setToken(response.access_token);
-      onLogin(response.access_token);
+      await onLogin(username, password);
     } catch (err) {
       setError('Invalid username or password');
       console.error('Login error:', err);
