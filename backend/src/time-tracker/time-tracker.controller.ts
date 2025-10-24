@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, UseGuards, Request } from '@nestjs/common';
 import { TimeTrackerService } from './time-tracker.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,32 +8,32 @@ export class TimeTrackerController {
   constructor(private readonly timeTrackerService: TimeTrackerService) {}
 
   @Post('start')
-  startTracking(@Body() startTimeDto: any) {
-    return this.timeTrackerService.startTracking(startTimeDto);
+  startTracking(@Request() req, @Body() startTimeDto: any) {
+    return this.timeTrackerService.startTracking(req.user.userId, startTimeDto);
   }
 
   @Post('stop')
-  stopTracking(@Body() stopTimeDto: any) {
-    return this.timeTrackerService.stopTracking(stopTimeDto);
+  stopTracking(@Request() req, @Body() stopTimeDto: any) {
+    return this.timeTrackerService.stopTracking(req.user.userId, stopTimeDto.entryId);
   }
 
   @Get('entries')
-  getTimeEntries() {
-    return this.timeTrackerService.getTimeEntries();
+  getTimeEntries(@Request() req) {
+    return this.timeTrackerService.getTimeEntries(req.user.userId);
   }
 
   @Get('summary')
-  getSummary() {
-    return this.timeTrackerService.getSummary();
+  getSummary(@Request() req) {
+    return this.timeTrackerService.getSummary(req.user.userId);
   }
 
   @Get('entries/:id')
-  getTimeEntry(@Param('id') id: string) {
-    return this.timeTrackerService.getTimeEntry(id);
+  getTimeEntry(@Request() req, @Param('id') id: string) {
+    return this.timeTrackerService.getTimeEntry(req.user.userId, parseInt(id));
   }
 
   @Put('entries/:id')
-  updateEntry(@Param('id') id: string, @Body() updateDto: any) {
-    return this.timeTrackerService.updateEntry(id, updateDto);
+  updateEntry(@Request() req, @Param('id') id: string, @Body() updateDto: any) {
+    return this.timeTrackerService.updateEntry(req.user.userId, parseInt(id), updateDto);
   }
 }

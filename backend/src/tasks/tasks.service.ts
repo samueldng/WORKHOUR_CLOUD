@@ -1,61 +1,87 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TasksService {
-  private tasks: any[] = [
-    {
-      id: 1,
-      projectId: 1,
-      name: 'Design Homepage',
-      description: 'Create wireframes for homepage',
-      status: 'todo',
-      assignee: 'john@example.com',
-      dueDate: '2025-01-15'
-    },
-    {
-      id: 2,
-      projectId: 1,
-      name: 'Implement Header',
-      description: 'Code the website header',
-      status: 'doing',
-      assignee: 'jane@example.com',
-      dueDate: '2025-01-20'
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(userId: number) {
+    return this.prisma.task.findMany({
+      where: {
+        project: {
+          userId: userId
+        }
+      }
+    });
+  }
+
+  async findOne(userId: number, id: number) {
+    return this.prisma.task.findFirst({
+      where: {
+        id: id,
+        project: {
+          userId: userId
+        }
+      }
+    });
+  }
+
+  async create(userId: number, createTaskDto: any) {
+    // First verify that the project belongs to the user
+    const project = await this.prisma.project.findFirst({
+      where: {
+        id: createTaskDto.projectId,
+        userId: userId
+      }
+    });
+
+    if (!project) {
+      throw new Error('Project not found or does not belong to user');
     }
-  ];
 
-  findAll() {
-    return this.tasks;
+    return this.prisma.task.create({
+      data: createTaskDto
+    });
   }
 
-  findOne(id: string) {
-    return this.tasks.find(task => task.id == id);
-  }
+  async update(userId: number, id: number, updateTaskDto: any) {
+    // First verify that the task belongs to a project that belongs to the user
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: id,
+        project: {
+          userId: userId
+        }
+      }
+    });
 
-  create(createTaskDto: any) {
-    const newTask = {
-      id: this.tasks.length + 1,
-      ...createTaskDto
-    };
-    this.tasks.push(newTask);
-    return newTask;
-  }
-
-  update(id: string, updateTaskDto: any) {
-    const index = this.tasks.findIndex(task => task.id == id);
-    if (index !== -1) {
-      this.tasks[index] = { ...this.tasks[index], ...updateTaskDto };
-      return this.tasks[index];
+    if (!task) {
+      throw new Error('Task not found or does not belong to user');
     }
-    return null;
+
+    return this.prisma.task.update({
+      where: { id: id },
+      data: updateTaskDto
+    });
   }
 
-  remove(id: string) {
-    const index = this.tasks.findIndex(task => task.id == id);
-    if (index !== -1) {
-      const deletedTask = this.tasks[index];
-      this.tasks.splice(index, 1);
-      return deletedTask;
+  async remove(userId: number, id: number) {
+    // First verify that the task belongs to a project that belongs to the user
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: id,
+        project: {
+          userId: userId
+        }
+      }
+    });
+
+    if (!task) {
+      throw new Error('Task not found or does not belong to user');
     }
-    return null;
+
+    return this.prisma.task.delete({
+      where: { id: id }
+    });
   }
 }

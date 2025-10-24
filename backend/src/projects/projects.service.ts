@@ -1,61 +1,41 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProjectsService {
-  private projects: any[] = [
-    {
-      id: 1,
-      name: 'Website Redesign',
-      description: 'Redesign company website',
-      status: 'active',
-      startDate: '2025-01-01',
-      endDate: '2025-03-31',
-      hourlyRate: 50
-    },
-    {
-      id: 2,
-      name: 'Mobile App Development',
-      description: 'Develop mobile application',
-      status: 'planning',
-      startDate: '2025-02-01',
-      endDate: '2025-08-31',
-      hourlyRate: 75
-    }
-  ];
+  constructor(private prisma: PrismaService) {}
 
-  findAll() {
-    return this.projects;
+  async findAll(userId: number) {
+    return this.prisma.project.findMany({
+      where: { userId: userId }
+    });
   }
 
-  findOne(id: string) {
-    return this.projects.find(project => project.id == id);
+  async findOne(userId: number, id: number) {
+    return this.prisma.project.findFirst({
+      where: { id: id, userId: userId }
+    });
   }
 
-  create(createProjectDto: any) {
-    const newProject = {
-      id: this.projects.length + 1,
-      ...createProjectDto
-    };
-    this.projects.push(newProject);
-    return newProject;
+  async create(userId: number, createProjectDto: any) {
+    return this.prisma.project.create({
+      data: {
+        ...createProjectDto,
+        userId: userId
+      }
+    });
   }
 
-  update(id: string, updateProjectDto: any) {
-    const index = this.projects.findIndex(project => project.id == id);
-    if (index !== -1) {
-      this.projects[index] = { ...this.projects[index], ...updateProjectDto };
-      return this.projects[index];
-    }
-    return null;
+  async update(userId: number, id: number, updateProjectDto: any) {
+    return this.prisma.project.update({
+      where: { id: id, userId: userId },
+      data: updateProjectDto
+    });
   }
 
-  remove(id: string) {
-    const index = this.projects.findIndex(project => project.id == id);
-    if (index !== -1) {
-      const deletedProject = this.projects[index];
-      this.projects.splice(index, 1);
-      return deletedProject;
-    }
-    return null;
+  async remove(userId: number, id: number) {
+    return this.prisma.project.delete({
+      where: { id: id, userId: userId }
+    });
   }
 }

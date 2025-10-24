@@ -1,57 +1,78 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TimeTrackerService {
-  private timeEntries: any[] = [];
+  constructor(private prisma: PrismaService) {}
 
-  startTracking(startTimeDto: any) {
-    const entry = {
-      id: this.timeEntries.length + 1,
-      userId: startTimeDto.userId,
-      projectId: startTimeDto.projectId,
-      taskId: startTimeDto.taskId,
-      startTime: new Date(),
-      endTime: null,
-      duration: 0,
-      status: 'active'
-    };
-
-    this.timeEntries.push(entry);
+  async startTracking(userId: number, startTimeDto: any) {
+    const entry = await this.prisma.timeEntry.create({
+      data: {
+        userId,
+        projectId: startTimeDto.projectId,
+        taskId: startTimeDto.taskId,
+        startTime: new Date(),
+        status: 'active'
+      }
+    });
     return entry;
   }
 
-  stopTracking(stopTimeDto: any) {
-    const entry = this.timeEntries.find(e => e.id == stopTimeDto.entryId && e.status === 'active');
+  async stopTracking(userId: number, entryId: number) {
+    const entry = await this.prisma.timeEntry.findFirst({
+      where: {
+        id: entryId,
+        userId: userId,
+        status: 'active'
+      }
+    });
+
     if (entry) {
-      entry.endTime = new Date();
-      entry.duration = (entry.endTime.getTime() - entry.startTime.getTime()) / 1000; // in seconds
-      entry.status = 'completed';
-      return entry;
+      const endTime = new Date();
+      const duration = Math.floor((endTime.getTime() - entry.startTime.getTime()) / 1000);
+      
+      const updatedEntry = await this.prisma.timeEntry.update({
+        where: { id: entryId },
+        data: {
+          endTime: endTime,
+          duration: duration,
+          status: 'completed'
+        }
+      });
+      
+      return updatedEntry;
     }
     return null;
   }
 
-  getTimeEntries() {
-    return this.timeEntries;
+  async getTimeEntries(userId: number) {
+    return this.prisma.timeEntry.findMany({
+      where: { userId: userId },
+      orderBy: { startTime: 'desc' }
+    });
   }
 
-  getTimeEntry(id: string) {
-    return this.timeEntries.find(e => e.id == id);
+  async getTimeEntry(userId: number, id: number) {
+    return this.prisma.timeEntry.findFirst({
+      where: { id: id, userId: userId }
+    });
   }
 
-  updateEntry(id: string, updateDto: any) {
-    const index = this.timeEntries.findIndex(e => e.id == id);
-    if (index !== -1) {
-      this.timeEntries[index] = { ...this.timeEntries[index], ...updateDto };
-      return this.timeEntries[index];
-    }
-    return null;
+  async updateEntry(userId: number, id: number, updateDto: any) {
+    return this.prisma.timeEntry.update({
+      where: { id: id, userId: userId },
+      data: updateDto
+    });
   }
 
-  getSummary() {
-    const totalEntries = this.timeEntries.length;
-    const totalDuration = this.timeEntries.reduce((sum, entry) => sum + entry.duration, 0);
-    const activeEntries = this.timeEntries.filter(e => e.status === 'active').length;
+  async getSummary(userId: number) {
+    const entries = await this.prisma.timeEntry.findMany({
+      where: { userId: userId }
+    });
+    
+    const totalEntries = entries.length;
+    const totalDuration = entries.reduce((sum, entry) => sum + entry.duration, 0);
+    const activeEntries = entries.filter(e => e.status === 'active').length;
     
     return {
       totalEntries,

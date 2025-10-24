@@ -1,21 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  private readonly users = [
-    {
-      userId: 1,
-      username: 'admin',
-      password: '$2b$10$rVvax2hL3CBUQfDxD3b9UeH70h/G9PozP0l/RhLQcEydDyH/CzqOq', // password: admin
-    }
-  ];
-
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private prisma: PrismaService
+  ) {}
 
   async validateUser(username: string, pass: string): Promise<any> {
-    const user = this.users.find(u => u.username === username);
+    const user = await this.prisma.user.findUnique({
+      where: { username: username }
+    });
+    
     if (user && await bcrypt.compare(pass, user.password)) {
       const { password, ...result } = user;
       return result;
@@ -24,24 +23,46 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.username, sub: user.userId };
+    const payload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user.userId,
-        username: user.username
+        id: user.id,
+        username: user.username,
+        email: user.email
       }
     };
   }
 
   async register(userDto: any) {
-    // In a real application, you would save the user to a database
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(userDto.password, 10);
+    
+    // Create the user in the database
+    const user = await this.prisma.user.create({
+      data: {
+        username: userDto.username,
+        email: userDto.email,
+        password: hashedPassword
+      }
+    });
+    
+    const { password, ...result } = user;
     return {
       message: 'User registered successfully',
-      user: {
-        id: this.users.length + 1,
-        username: userDto.username
-      }
+      user: result
     };
+  }
+  
+  async getProfile(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (user) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
   }
 }
